@@ -1,9 +1,9 @@
-package com.optistockplatrorm.entity; // Adaptez le package selon votre structure
+package com.optistockplatrorm.entity;
 
 import com.optistockplatrorm.entity.Enums.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -22,7 +22,7 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "users")
-@Inheritance(strategy = InheritanceType.JOINED) // Basé sur vos logs qui montrent des tables 'admins', 'clients', etc.
+@Inheritance(strategy = InheritanceType.JOINED)
 public class User implements UserDetails {
 
     @Id
@@ -48,13 +48,9 @@ public class User implements UserDetails {
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
-    // --- C'EST ICI LA CORRECTION ---
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    // -------------------------------
-
-    // Implémentation des méthodes UserDetails (Spring Security)
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

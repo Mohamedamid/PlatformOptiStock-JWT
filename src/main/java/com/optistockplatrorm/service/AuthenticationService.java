@@ -27,7 +27,6 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
-    // Méthode Register (Pour créer des admins/users test)
     public AuthResponse register(RegisterRequest request) {
         var user = User.builder()
                 .firstName(request.getFirstname())
@@ -39,7 +38,6 @@ public class AuthenticationService {
                 .build();
         var savedUser = repository.save(user);
 
-        // Convertir User vers UserDetails pour JWT
         var userDetails = org.springframework.security.core.userdetails.User.builder()
                 .username(savedUser.getEmail())
                 .password(savedUser.getPassword())
@@ -55,14 +53,11 @@ public class AuthenticationService {
                 .build();
     }
 
-    // Méthode Login
     public AuthResponse authenticate(LoginRequest request) {
-        // 1. Authentifier via Spring Security (vérifie mdp, account locked, etc.)
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
-        // 2. Récupérer l'user de la BDD
         var user = repository.findByEmail(request.getEmail()).orElseThrow();
 
         var userDetails = org.springframework.security.core.userdetails.User.builder()
@@ -71,9 +66,8 @@ public class AuthenticationService {
                 .roles(user.getRole().name())
                 .build();
 
-        // 3. Générer les tokens
         var jwtToken = jwtService.generateToken(userDetails);
-        var refreshToken = createRefreshToken(user); // Rotation automatique ici
+        var refreshToken = createRefreshToken(user);
 
         return AuthResponse.builder()
                 .accessToken(jwtToken)
@@ -81,15 +75,13 @@ public class AuthenticationService {
                 .build();
     }
 
-    // Logique Refresh Token (Rotation : supprimer l'ancien, créer un nouveau)
     private RefreshToken createRefreshToken(User user) {
-        // Supprimer l'ancien token s'il existe
         tokenRepository.findByUser(user).ifPresent(tokenRepository::delete);
 
         RefreshToken refreshToken = RefreshToken.builder()
                 .user(user)
                 .token(UUID.randomUUID().toString())
-                .expiryDate(Instant.now().plusMillis(604800000)) // 7 jours (valeur hardcodée ou injectée)
+                .expiryDate(Instant.now().plusMillis(604800000))
                 .revoked(false)
                 .build();
         return tokenRepository.save(refreshToken);

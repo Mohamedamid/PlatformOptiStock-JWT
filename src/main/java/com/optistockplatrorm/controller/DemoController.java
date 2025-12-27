@@ -6,10 +6,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/api/v1/demo")
 public class DemoController {
 
-    @GetMapping("/demo")
+    @GetMapping
     public ResponseEntity<String> adminOnly() {
         return ResponseEntity.ok("Hello Admin - Rak connecti!");
     }
