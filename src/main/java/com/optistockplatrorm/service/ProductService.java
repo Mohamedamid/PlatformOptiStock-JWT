@@ -1,0 +1,127 @@
+package com.optistockplatrorm.service;
+
+import com.optistockplatrorm.dto.ProductRequestDTO;
+import com.optistockplatrorm.dto.ProductResponseDTO;
+import com.optistockplatrorm.entity.Category;
+import com.optistockplatrorm.entity.Enums.OrderStatus;
+import com.optistockplatrorm.entity.Inventory;
+import com.optistockplatrorm.entity.Product;
+import com.optistockplatrorm.exception.GestionException;
+import com.optistockplatrorm.mapper.ProductMapper;
+import com.optistockplatrorm.repository.CategoryRepository;
+import com.optistockplatrorm.repository.InventoryRepository;
+import com.optistockplatrorm.repository.OrderLineRepository;
+import com.optistockplatrorm.repository.ProductRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class ProductService {
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private ProductMapper productMapper;
+
+    @Autowired
+    private OrderLineRepository orderLineRepository;
+
+    @Autowired
+    private InventoryRepository inventoryRepository;
+
+    public Page<ProductResponseDTO> getAllProducts(int page, int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Product> productsPage = productRepository.findAll(pageable);
+
+        return productsPage.map(productMapper::toDTO);
+    }
+
+    public ProductResponseDTO getProductById(Long id) {
+
+        Optional<Product> product = productRepository.findById(id);
+        return product.map(productMapper::toDTO)
+                .orElseThrow(() -> new RuntimeException("Produit introuvable avec l'identifiant : " + id));
+    }
+
+    public ProductResponseDTO createProduct(ProductRequestDTO dto) {
+
+        Category category = categoryRepository.findById(dto.categoryId())
+                .orElseThrow(() -> new RuntimeException("Catégorie introuvable avec l'identifiant : " + dto.categoryId()));
+
+        Product product = Product.builder()
+                .sku(dto.sku())
+                .name(dto.name())
+                .category(category)
+                .purchasePrice(dto.purchasePrice())
+                .sellingPrice(dto.sellingPrice())
+                .active(dto.active())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Product saved = productRepository.save(product);
+        return productMapper.toDTO(saved);
+    }
+
+    public ProductResponseDTO updateProduct(Long id, ProductRequestDTO dto) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Produit introuvable avec l'identifiant : " + id));
+
+        Category category = categoryRepository.findById(dto.categoryId())
+                .orElseThrow(() -> new RuntimeException("Catégorie introuvable avec l'identifiant : " + dto.categoryId()));
+
+        product.setName(dto.name());
+        product.setSku(dto.sku());
+        product.setPurchasePrice(dto.purchasePrice());
+        product.setSellingPrice(dto.sellingPrice());
+        product.setCategory(category);
+        product.setActive(dto.active());
+
+        Product updated = productRepository.save(product);
+        return productMapper.toDTO(updated);
+    }
+
+    public boolean deleteProduct(Long id) {
+
+        if (!productRepository.existsById(id)) {
+            throw new RuntimeException("Produit introuvable avec l'identifiant : " + id);
+        }
+
+        productRepository.deleteById(id);
+        return true;
+    }
+
+//    public void deactivateProduct(String sku) {
+//        Product product = productRepository.findBySku(sku)
+//                .orElseThrow(() -> new GestionException("Produit non trouvé"));
+//
+//        long activeOrders = orderLineRepository.countByProduct_SkuAndOrder_OrderStatusIn(
+//                sku, List.of(OrderStatus.CREATED, OrderStatus.RESERVED)
+//        );
+//        if (activeOrders > 0) {
+//            throw new GestionException("Impossible de désactiver le produit");
+//        }
+//
+//        List<Inventory> inventories = inventoryRepository.findByProductSku(sku);
+//        int totalReserved = inventories.stream().mapToInt(Inventory::getQuantityReserved).sum();
+//        if (totalReserved > 0) {
+//            throw new GestionException("Impossible de désactiver le produit");
+//        }
+//
+//        product.setActive(false);
+//        productRepository.save(product);
+//    }
+
+}
